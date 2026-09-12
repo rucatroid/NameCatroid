@@ -45,3 +45,31 @@ public class AiBrickConverter {
         }
     }
 }
+public void startLocalAiGeneration(Sprite activeSprite, String pathToFileGguf) {
+    String userPrompt = "Поверни налево и пройди 20 шагов";
+    
+    // Формируем системный промпт для локальной модели
+    String fullPrompt = "System: Ты конвертер команд в JSON. Отвечай только JSON вида {\"actions\":[{\"type\":\"move\",\"steps\":20}]}\n" +
+                        "User: " + userPrompt + "\nAssistant:";
+
+    LocalLlamaBridge bridge = new LocalLlamaBridge();
+    bridge.runInferenceAsync(pathToFileGguf, fullPrompt, new LocalLlamaBridge.LocalAiCallback() {
+        @Override
+        public void onSuccess(String jsonResult) {
+            runOnUiThread(() -> {
+                // Добавляем сгенерированные блоки в объект
+                AiBrickConverter.applyToSprite(activeSprite, jsonResult);
+                
+                // Обновляем UI списка блоков
+                updateScriptAdapterUI();
+            });
+        }
+
+        @Override
+        public void onError(Exception e) {
+            runOnUiThread(() -> 
+                Toast.makeText(ScriptActivity.this, "Ошибка офлайн-генерации: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+            );
+        }
+    });
+}
